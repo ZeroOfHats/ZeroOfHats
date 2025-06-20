@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}RAG Instruction Processing Results{% endblock %}
+{% block content %}
+<h2>RAG Instruction Processing Results</h2>
+
+{% if chunk_id %}
+    <p>Results for RAG Chunk ID: <strong>{{ chunk_id }}</strong></p>
+{% endif %}
+
+{% if source_file %}
+    <p>Source File: <strong>{{ source_file if source_file else 'N/A' }}</strong></p>
+{% endif %}
+
+{% if results %}
+<h3>Execution Log:</h3>
+<ul>
+    {% for result in results %}
+    <li>
+        {% if "Success:" in result %}
+        <strong style="color: green;">{{ result }}</strong>
+        {% elif "Error:" in result or "Parser Error:" in result or "Unexpected error:" in result %}
+        <strong style="color: red;">{{ result }}</strong>
+        {% else %}
+        {{ result }} <!-- For messages like "No valid RAG instructions..." -->
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>No instructions were processed, or no results to display. This might indicate an issue if instructions were expected.</p>
+{% endif %}
+
+<p><a href="/rag_chunks/">Back to RAG Chunks List</a></p>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Add Game Instance{% endblock %}
+{% block content %}
+<h2>Add New Game Instance</h2>
+{% if error %}
+    <p style="color: red;">{{ error }}</p>
+{% endif %}
+<form method="post">
+    <div class="form-group">
+        <label for="name">Instance Name:</label>
+        <input type="text" id="name" name="name" value="{{ name or '' }}" required>
+    </div>
+    <div class="form-group">
+        <label for="current_state_json">Current State (JSON format):</label>
+        <textarea id="current_state_json" name="current_state_json" rows="10" required placeholder='{"player_location": {"x":1, "y":2}, "active_entities": []}'>{{ current_state_json or '' }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="level_template_id">Level Template ID (optional):</label>
+        <input type="number" id="level_template_id" name="level_template_id" value="{{ level_template_id or '' }}">
+        <small>If you have Level Templates, you can link one by its ID.</small>
+    </div>
+    <button type="submit">Add Game Instance</button>
+</form>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}View Entity Definitions{% endblock %}
+{% block content %}
+<h2>Stored Entity Definitions</h2>
+{% if entities %}
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Default Properties (JSONB)</th>
+            <th>Description</th>
+            <!-- Add Actions column later for CRUD -->
+        </tr>
+    </thead>
+    <tbody>
+        {% for entity in entities %}
+        <tr>
+            <td>{{ entity.id }}</td>
+            <td>{{ entity.name }}</td>
+            <td>{{ entity.type }}</td>
+            <td>
+                <pre style="white-space: pre-wrap; word-break: break-all; background-color: #f8f9fa; padding: 5px; border-radius: 3px;">{{ entity.default_properties | tojson(indent=2) }}</pre>
+            </td>
+            <td>{{ entity.description if entity.description else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No entity definitions found. You can create them via RAG instructions.</p>
+{% endif %}
+<!-- Link to add entity definition might be added later if manual creation is desired -->
+<!-- For now, primary creation is via RAG -->
+{% endblock %}

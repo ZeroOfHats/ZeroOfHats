@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Edit Game Instance{% endblock %}
+{% block content %}
+<h2>Edit Game Instance ID: {{ instance.id }}</h2>
+<form method="post">
+    <div class="form-group">
+        <label for="name">Instance Name:</label>
+        <input type="text" id="name" name="name" required value="{{ instance.name }}">
+    </div>
+    <div class="form-group">
+        <label for="current_state_json">Current State (JSON format):</label>
+        <textarea id="current_state_json" name="current_state_json" rows="10" required placeholder='{"player_location": {"x":1, "y":2}, "active_entities": []}'>{% if instance.current_state is mapping %}{{ instance.current_state | tojson(indent=2) }}{% else %}{{ instance.current_state }}{% endif %}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="level_template_id">Level Template ID (optional):</label>
+        <input type="number" id="level_template_id" name="level_template_id" value="{{ instance.level_template_id if instance.level_template_id is not none else '' }}">
+        <small>If you have Level Templates, you can link one by its ID.</small>
+    </div>
+    {% if error %}
+        <p style="color: red;"><strong>Error:</strong> {{ error }}</p>
+    {% endif %}
+    <button type="submit">Save Changes</button>
+    <a href="/game_instances/" style="margin-left: 10px;">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Edit RAG Chunk{% endblock %}
+{% block content %}
+<h2>Edit RAG Chunk ID: {{ chunk.id }}</h2>
+<form method="post">
+    <div class="form-group">
+        <label for="chunk_content">Chunk Content:</label>
+        <textarea id="chunk_content" name="chunk_content" rows="10" required>{{ chunk.chunk_content }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="source_file">Source File (optional):</label>
+        <input type="text" id="source_file" name="source_file" value="{{ chunk.source_file if chunk.source_file is not none else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="chunk_index">Chunk Index (optional):</label>
+        <input type="number" id="chunk_index" name="chunk_index" value="{{ chunk.chunk_index if chunk.chunk_index is not none else '' }}">
+    </div>
+    <div class="form-group">
+        <label for="metadata_json">Metadata (JSON format, optional):</label>
+        <textarea id="metadata_json" name="metadata_json" rows="3" placeholder='{"key": "value"}'>{{ chunk.metadata | tojson(indent=2) if chunk.metadata else '' }}</textarea>
+    </div>
+    <button type="submit">Save Changes</button>
+    <a href="/rag_chunks/" style="margin-left: 10px;">Cancel</a>
+</form>
+{% endblock %}

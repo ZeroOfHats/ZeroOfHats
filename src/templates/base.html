@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RAG & Game State Manager{% endblock %}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        nav { margin-bottom: 20px; background-color: #333; padding: 10px; border-radius: 5px; }
+        nav a { color: white; margin-right: 15px; text-decoration: none; }
+        nav a:hover { text-decoration: underline; }
+        .container { background-color: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f0f0f0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+            .button-link {
+                padding: 5px 10px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em;
+            }
+            .button-link:hover { background-color: #5a6268; }
+            .button-delete {
+                padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em;
+            }
+            .button-delete:hover { background-color: #c82333; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/rag_chunks/add">Add RAG Chunk</a>
+        <a href="/rag_chunks/">View RAG Chunks</a>
+        <a href="/game_instances/add">Add Game Instance</a>
+        <a href="/game_instances/">View Game Instances</a>
+        <a href="/entity_definitions/">View Entity Definitions</a>
+        <!-- Add other navigation links here as features are added -->
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

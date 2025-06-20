@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Add RAG Chunk{% endblock %}
+{% block content %}
+<h2>Add New RAG Chunk</h2>
+<form method="post">
+    <div class="form-group">
+        <label for="chunk_content">Chunk Content:</label>
+        <textarea id="chunk_content" name="chunk_content" rows="10" required></textarea>
+    </div>
+    <div class="form-group">
+        <label for="source_file">Source File (optional):</label>
+        <input type="text" id="source_file" name="source_file">
+    </div>
+    <div class="form-group">
+        <label for="chunk_index">Chunk Index (optional):</label>
+        <input type="number" id="chunk_index" name="chunk_index">
+    </div>
+    <div class="form-group">
+        <label for="metadata_json">Metadata (JSON format, optional):</label>
+        <textarea id="metadata_json" name="metadata_json" rows="3" placeholder='{"key": "value"}'></textarea>
+    </div>
+    <button type="submit">Add Chunk</button>
+</form>
+{% endblock %}

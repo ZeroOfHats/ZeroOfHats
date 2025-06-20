@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Home - RAG & Game State Manager{% endblock %}
+{% block content %}
+<h2>Welcome to the RAG & Game State Manager</h2>
+<p>This system helps manage RAG chunks and complex game state data for the Labyrinth Builder game.</p>
+<p>Currently, there are <strong>{{ rag_chunk_count | default('0') }}</strong> RAG chunks stored in the database.</p>
+<p>Currently, there are <strong>{{ game_instance_count | default('0') }}</strong> game instances stored in the database.</p>
+<p>Currently, there are <strong>{{ entity_definition_count | default('0') }}</strong> entity definitions stored in the database.</p>
+<h3>Quick Links:</h3>
+<ul>
+    <li><a href="/rag_chunks/add">Add a new RAG Chunk</a></li>
+    <li><a href="/rag_chunks/">View all RAG Chunks</a></li>
+    <li><a href="/game_instances/add">Add a new Game Instance</a></li>
+    <li><a href="/game_instances/">View all Game Instances</a></li>
+    <li><a href="/entity_definitions/">View all Entity Definitions</a></li>
+    <!-- Add more links as features are developed -->
+</ul>
+{% endblock %}

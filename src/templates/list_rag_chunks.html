@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}View RAG Chunks{% endblock %}
+{% block content %}
+<h2>Stored RAG Chunks</h2>
+{% if chunks %}
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Content (Snippet)</th>
+            <th>Source File</th>
+            <th>Index</th>
+            <th>Metadata</th>
+                <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for chunk in chunks %}
+        <tr>
+            <td>{{ chunk.id }}</td>
+            <td>{{ chunk.chunk_content[:100] }}{% if chunk.chunk_content|length > 100 %}...{% endif %}</td>
+            <td>{{ chunk.source_file }}</td>
+            <td>{{ chunk.chunk_index }}</td>
+            <td>{{ chunk.metadata }}</td>
+                <td>
+                    <form action="/rag_chunks/{{ chunk.id }}/process" method="post" style="display: inline; margin-right: 5px;">
+                        <button type="submit">Process Instructions</button>
+                    </form>
+                    <a href="/rag_chunks/{{ chunk.id }}/edit" class="button-link">Edit</a>
+                    <form action="/rag_chunks/{{ chunk.id }}/delete" method="post" style="display: inline; margin-left: 5px;">
+                        <button type="submit" onclick="return confirm('Are you sure you want to delete this RAG chunk?');" class="button-delete">Delete</button>
+                    </form>
+                </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No RAG chunks found.</p>
+{% endif %}
+<p><a href="/rag_chunks/add">Add another chunk</a></p>
+{% endblock %}
