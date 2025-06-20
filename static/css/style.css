@@ -1,0 +1,81 @@
+body {
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0;
+}
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+.game-area {
+    border: 1px solid black;
+}
+canvas {
+    display: block; /* Removes potential extra space below canvas */
+}
+.controls-area, .code-editor-area, .rag-area, .message-log-area, .saved-scripts-area, .scrap-inventory-area, .game-options-area, .sandbox-editor-area { /* Added .sandbox-editor-area */
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: #fff;
+    min-width: 300px;
+}
+textarea, pre {
+    width: 95%;
+    min-height: 60px;
+    border: 1px solid #ddd;
+    background-color: #fafafa;
+    font-family: monospace;
+}
+pre {
+    white-space: pre-wrap; /* Allow text wrapping in pre tags */
+    max-height: 150px;
+    overflow-y: auto;
+}
+button {
+    margin: 5px 2px;
+    padding: 5px 10px;
+}
+
+.code-display {
+    background-color: #e8e8e8;
+    padding: 5px;
+    border: 1px dashed #ccc;
+    max-height: 150px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.saved-scripts-area, .scrap-inventory-area { /* Combined for consistency */
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: #fff;
+    min-width: 300px;
+}
+
+/* New styles for Sandbox Editor UI */
+.sandbox-editor-area div {
+    margin-bottom: 8px;
+}
+.sandbox-editor-area label {
+    display: inline-block;
+    width: 150px; /* Adjust for alignment */
+    vertical-align: top; /* Align labels to the top of multi-line inputs like textarea */
+}
+.sandbox-editor-area input[type="text"],
+.sandbox-editor-area select {
+    width: 200px; /* Adjust as needed */
+    padding: 4px;
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+.sandbox-editor-area textarea { /* Specific styling for textarea within sandbox editor if needed */
+    width: calc(100% - 160px); /* Adjust based on label width and desired spacing */
+    min-height: 80px;
+    vertical-align: top;
+}

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labyrinth2D</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/material-darker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
+    <style>
+        .CodeMirror {
+            border: 1px solid #ccc;
+            height: auto;
+            min-height: 200px;
+            font-size: 13px;
+        }
+        .code-editor-area textarea#codeEditor {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Labyrinth2D</h1>
+    <div class="container">
+        <div class="game-area">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+        <div class="controls-area">
+            <h3>Controls</h3>
+            <button onclick="movePlayer('up')">Up</button>
+            <button onclick="movePlayer('down')">Down</button>
+            <button onclick="movePlayer('left')">Left</button>
+            <button onclick="movePlayer('right')">Right</button>
+            <p>Player: <span id="playerIdDisplay">-</span>@(<span id="playerPositionDisplay">?,?</span>)</p>
+            <p>Current Script: <span id="currentScriptNameDisplay">default_room</span></p>
+            <button onclick="tickGame()">Process Game Tick</button> <!-- Added Tick Button -->
+        </div>
+        <div class="game-options-area"> <!-- New Game Options Section -->
+            <h3>Game Options</h3>
+            <div>
+                <label for="gameModeSelect">Game Mode:</label>
+                <select id="gameModeSelect">
+                    <option value="sandbox">Sandbox (Creative)</option>
+                    <option value="attrition">Attrition (Last Faction Standing)</option>
+                    <option value="code_dominion">Code Dominion</option>
+                </select>
+            </div>
+            <button onclick="applyGameOptions()">Apply Options</button>
+            <p>Current Mode: <span id="currentGameModeDisplay">sandbox</span></p>
+        </div>
+            <div class="sandbox-editor-area">
+                <h3>Sandbox Sprite/Machine Template Editor</h3>
+                <div>
+                    <label for="templateName">Template Name:</label>
+                    <input type="text" id="templateName" placeholder="my_sentry_bot_mk1">
+                </div>
+                <div>
+                    <label for="templateSpriteChar">Sprite Character:</label>
+                    <input type="text" id="templateSpriteChar" size="3" maxlength="1" placeholder="@">
+                </div>
+                <div>
+                    <label for="templateEntityType">Entity Type:</label>
+                    <input type="text" id="templateEntityType" placeholder="robot, monster, item">
+                </div>
+                <div>
+                    <label for="templateEntityScript">Assign Entity Script:</label>
+                    <select id="templateEntityScript"></select>
+                    <button type="button" onclick="refreshEntityScriptList()">Refresh Scripts</button>
+                    <small>(Selected script will be set as 'script_name' in properties)</small>
+                </div>
+                <div>
+                    <label for="templateProperties">Properties (JSON format):</label>
+                    <textarea id="templateProperties" rows="6" cols="70" placeholder='{ "health": 10, "faction_id": "neutral", "custom_value": "abc" }'></textarea>
+                </div>
+                <button onclick="saveCurrentEntityTemplate()">Save Template</button>
+
+                <h4>Saved Entity Templates:</h4>
+                <select id="savedEntityTemplatesList" size="5"></select>
+                <button onclick="loadSelectedEntityTemplate()">Load Template</button>
+                <button onclick="refreshEntityTemplateList()">Refresh Templates</button>
+            </div>
+        <div class="code-editor-area">
+            <h3>Generation Script Editor</h3>
+            <div>
+                <label for="scriptName">Script Name:</label>
+                <input type="text" id="scriptName" placeholder="my_awesome_room">
+                <button onclick="saveScript()">Save Script</button>
+            </div>
+            <textarea id="codeEditor" rows="15" cols="70">// Your Python room generation script here...
+// Must define: generate_room(seed, room_params)
+// Example:
+// def generate_room(seed, room_params):
+//   game.fill_rect(0,0, game.GRID_WIDTH, game.GRID_HEIGHT, '.')
+//   game.draw_line(10,10, 20,10, '#')
+//   game.place_entity('player_0', 'player', 25,25, '@')
+</textarea>
+                <div>
+                    <label for="emojiSeedOverrideInput" title="If filled, this emoji string will be used for generation, overriding other seed/param settings for this run.">Emoji Seed Override:</label>
+                    <input type="text" id="emojiSeedOverrideInput" placeholder="🔥💎✨">
+                </div>
+            <button onclick="executeScript()">Run Current Script</button>
+            <h4>Script Output & Actions:</h4>
+            <pre id="scriptOutput"></pre>
+        </div>
+        <div class="saved-scripts-area">
+            <h3>Saved Generation Scripts</h3>
+            <select id="savedScriptsList" size="5"></select>
+            <button onclick="loadSelectedScript()">Load Selected Script</button>
+            <button onclick="refreshScriptList()">Refresh List</button>
+        </div>
+        <div class="scrap-inventory-area">
+            <h3>Scrap Code Inventory</h3>
+            <select id="scrapInventoryList" size="5" onchange="displaySelectedScrapCode()"></select>
+            <button onclick="refreshScrapList()">Refresh Scraps</button>
+            <h4>Selected Scrap Details:</h4>
+            <pre id="selectedScrapName" style="font-weight: bold;"></pre>
+            <pre id="selectedScrapDescription"></pre>
+            <pre id="selectedScrapCodeDisplay" class="code-display"></pre>
+            <button onclick="copyScrapToEditor()">Copy Scrap to Editor</button>
+        </div>
+        <div class="rag-area">
+            <h3>RAG Helper</h3>
+            <input type="text" id="ragQuery" placeholder="Ask RAG..." />
+            <button onclick="queryRag()">Query RAG</button>
+            <h4>RAG Response:</h4>
+            <pre id="ragResponse"></pre>
+        </div>
+         <div class="message-log-area">
+            <h3>Game Log</h3>
+            <pre id="gameLog"></pre>
+        </div>
+    </div>
+
+    <script>
+        const initialGrid = {{ initial_grid | tojson }};
+        const GRID_WIDTH = {{ GRID_WIDTH }};
+        const GRID_HEIGHT = {{ GRID_HEIGHT }};
+        const TILE_SIZE = {{ TILE_SIZE }};
+    </script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  labyrinth2d_web:
+    build:
+      context: .  # Use the current directory as the build context
+      dockerfile: Dockerfile # Specify the Dockerfile name
+    ports:
+      - "8000:8000" # Map host port 8000 to container port 8000
+    volumes:
+      # Mount the application code for live reload during development
+      # This makes changes in your local code reflect immediately in the container
+      # For production, you might remove this or change to a named volume for data.
+      - .:/app
+    # environment: # Example if you had specific env vars for the app
+      # - RAG_API_URL=http://some_external_rag_service_url
+    # For development, uvicorn's reload takes care of changes.
+    # No separate player_data volume needed yet as data is in-memory or part of app code.
+    # If player scripts/maps were saved to files outside /app, a volume for that would be good.
