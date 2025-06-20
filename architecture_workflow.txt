@@ -1,0 +1,132 @@
+## Procast Nation Studio: Overall Architecture and Workflow
+
+This document describes the high-level architecture, data flow, sequence of operations, and key software components for the "Procast Nation" Studio.
+
+**High-Level Data Flow Diagram:**
+
+```
+User --(1. Script Upload)--> Web UI (Frontend)
+                                |
+                                v (2. HTTP Request: Script + Config)
+Backend API (FastAPI - Python) --(3. Initiates Async Task, Returns Task ID)--> Web UI
+        |
+        v (4. Script Processing Orchestrator - Async Task)
+        |-----> Script Parser Module ---------------------> [Parsed Script: Dialogue, Narration, SFX Cues, Pauses]
+        |           | (Text, Character)                     ^
+        |           v                                       | (Voice Params)
+        |-----> Voice Configuration Store (JSON/DB)         |
+        |           ^                                       | (Lookup Voice)
+        |           | (Character Name)                      |
+        |-----> TTS Module (Coqui TTS, Piper)--------------> [Dialogue/Narration Audio Segments]
+        |           | (SFX Description)                     |
+        |           v                                       |
+        |-----> SFX Module (Local Library, API)------------> [SFX Audio Segments / Placeholders]
+        |           |                                       |
+        |           v (Silence Duration for Pauses)         |
+        |-----> Audio Mixer Module (Pydub) <----------------| (Collects all Audio Segments)
+        |           |
+        |           v (5. Final Mixed Audio File)
+        |           |
+        |-----> [Storage for Processed Audio]
+        |
+        v (6. Task Status Updates: Processing, Completed, Error)
+Backend API --(Polling or WebSocket)--> Web UI
+        |
+        v (7. Download Link for Final Audio)
+Web UI --(8. User Downloads Audio)--> User
+```
+
+**Sequence of Operations:**
+
+1.  **Script Upload & Configuration:**
+    *   The user uploads their "Procast Nation" formatted script via the Web UI.
+    *   Optionally, the user might also configure voice assignments for characters through the UI at this stage, or rely on a pre-configured `voice_config.json`.
+
+2.  **Request Handling (Backend API - FastAPI):**
+    *   The Web UI sends the script content (and any initial voice configurations) to a dedicated endpoint on the Backend API (e.g., `/produce_audio`).
+    *   The API endpoint validates the request and initiates an asynchronous background task for the audio production pipeline. This is crucial to prevent HTTP timeouts for potentially long-running audio generation processes.
+    *   The API immediately returns a task ID and possibly a status URL to the Web UI, allowing the UI to poll for progress.
+
+3.  **Script Parsing (Script Parser Module - within the async task):**
+    *   The background task begins by feeding the raw script text to the Script Parser Module.
+    *   The parser validates the script against the "Procast Nation" format and breaks it down into a structured list of segments. Each segment object/dictionary contains:
+        *   `type`: e.g., "dialogue", "narration", "sfx", "pause".
+        *   `content`: Text for dialogue/narration, description for SFX.
+        *   `character_name`: For "dialogue" type.
+        *   `emotion_cue` (optional): For dialogue.
+        *   `pause_duration` (optional): For "pause" type.
+        *   `line_number` (optional): For debugging.
+
+4.  **Audio Segment Generation (Iterative Process within the async task):**
+    *   The system iterates through the list of parsed script segments:
+        *   **For Dialogue/Narration Segments:**
+            1.  The character name (or "NARRATOR") is used to look up voice parameters in the Voice Configuration Store (e.g., `voice_config.json`). This store defines which TTS engine (Coqui, Piper), model, speaker ID/embedding, language, and any voice cloning samples to use.
+            2.  The text content (and optional emotion cue) is passed to the TTS Module along with the retrieved voice parameters.
+            3.  The TTS Module generates an audio clip for that segment (e.g., as a temporary WAV file).
+        *   **For SFX Cues:**
+            1.  The SFX description (e.g., "footsteps on gravel") is passed to the SFX Module.
+            2.  The SFX Module attempts to retrieve or generate the sound:
+                *   Priority 1: Search the curated Local SFX Library (based on keywords/tags).
+                *   Priority 2 (Optional): If not found locally and configured, query an external SFX API (e.g., Freesound) with license filtering. Downloaded sounds are cached.
+                *   Priority 3 (Future): Call a generative SFX model.
+            3.  If a sound is found/generated, its audio clip (or path) is used.
+            4.  If not found, a placeholder sound (e.g., a short beep or silence) is used, and a warning is logged.
+        *   **For Pause Cues:**
+            1.  A silent audio segment of the specified duration (e.g., "short" mapped to 0.5s, or "2s") is generated, typically by the Audio Mixer module or a utility function.
+    *   Each generated audio clip (dialogue, narration, SFX, silence) is stored temporarily, often with metadata linking it to its sequence in the script.
+
+5.  **Audio Mixing (Audio Mixer Module - Pydub - within the async task):**
+    *   Once all individual audio clips for the script have been generated (or processed in batches for longer scripts), they are passed to the Audio Mixer Module.
+    *   The Audio Mixer performs the following operations:
+        *   **Concatenation:** Assembles dialogue, narration, and silent pause segments in the correct sequence.
+        *   **Overlaying:** Mixes SFX tracks with the main dialogue/narration track. This includes placing SFX at precise points, managing concurrent sounds, and potentially adjusting SFX volume (e.g., ducking background SFX under dialogue).
+        *   **Volume Adjustments & Normalization:** Applies individual volume adjustments as needed and may perform overall loudness normalization to ensure consistent audio levels.
+        *   **Fades:** Applies fade-in/fade-out effects to segments or SFX if specified in the script or as a default behavior for smoother transitions.
+        *   **Format Conversion & Export:** Exports the final, fully mixed audio track into the desired output format (e.g., MP3 for distribution, WAV for archiving). Metadata (title, author from script) may be embedded if supported by the format.
+    *   The final audio file is saved to a designated output directory accessible by the Backend API.
+
+6.  **Status Updates & Output Retrieval:**
+    *   Throughout the processing, the asynchronous task updates its status (e.g., "parsing," "generating_tts," "mixing," "completed," "failed") and percentage progress, which is stored and can be queried by the Web UI via the Backend API (using the task ID).
+    *   Upon successful completion, the path or a direct download link to the final mixed audio file is made available.
+    *   The Web UI reflects the "completed" status and provides the download link to the user.
+    *   If any critical errors occur during the process, they are logged, the task status is updated to "failed," and an appropriate error message is relayed to the Web UI.
+
+**Key Software Components and Their Interactions:**
+
+1.  **Web UI (Frontend):**
+    *   Built with HTML, CSS, JavaScript (potentially using FastAPI's templating engine or a separate JS framework like Vue.js or React).
+    *   Responsibilities: User script upload, interface for voice/SFX configuration (optional), initiating audio production, displaying progress, providing download links, and showing error messages.
+    *   Interacts with: Backend API via HTTP requests.
+
+2.  **Backend API (FastAPI - Python):**
+    *   Responsibilities: Handles all HTTP communication from the Web UI, manages authentication (if any), validates requests, initiates and manages asynchronous audio processing tasks, serves status updates, and provides access to the final audio files.
+    *   Interacts with: Web UI, Script Processing Orchestrator.
+
+3.  **Script Processing Orchestrator (Conceptual - part of Backend API's async task logic):**
+    *   Responsibilities: Manages the end-to-end workflow for a single script processing job. This involves calling the Script Parser, coordinating with the TTS and SFX Modules for audio segment generation, managing temporary audio files, and finally invoking the Audio Mixer.
+    *   Interacts with: Script Parser, TTS Module, SFX Module, Audio Mixer Module, Voice Configuration Store.
+
+4.  **Script Parser Module (Python):**
+    *   Responsibilities: Takes raw script text, validates its format, and transforms it into a structured representation (e.g., a list of segment objects) that the orchestrator can process.
+    *   Interacts with: Called by the Script Processing Orchestrator.
+
+5.  **Voice Configuration Store (e.g., `voice_config.json` file or a simple database table):**
+    *   Responsibilities: Persistently stores mappings between character names (and "NARRATOR") and their assigned voice parameters (TTS engine, model ID, speaker embedding path for cloning, language, etc.).
+    *   Interacts with: Read by the Script Processing Orchestrator/TTS Module. Potentially updatable via the Web UI through dedicated API endpoints.
+
+6.  **TTS Module (Python - wrapper around Coqui TTS, Piper TTS libraries):**
+    *   Responsibilities: Encapsulates the logic for interacting with different TTS engines. Takes text and specific voice parameters, loads the appropriate models, and generates speech audio.
+    *   Interacts with: Called by the Script Processing Orchestrator.
+
+7.  **SFX Module (Python):**
+    *   Responsibilities: Takes an SFX textual description, searches the local SFX library (and/or external APIs if configured), retrieves the corresponding audio file, or provides a placeholder if no match is found.
+    *   Interacts with: Called by the Script Processing Orchestrator.
+
+8.  **Audio Mixer Module (Python - primarily using Pydub):**
+    *   Responsibilities: Receives all individual audio segments (dialogue, narration, SFX, silence). Handles their sequential concatenation, overlaying, volume adjustments, application of fades, and export to the final desired audio format (MP3, WAV).
+    *   Interacts with: Called by the Script Processing Orchestrator.
+
+9.  **Container (Docker):**
+    *   Responsibilities: Encapsulates the entire backend application (FastAPI, all Python modules, TTS engines, Pydub, FFmpeg, and other dependencies) into a single, portable unit. The Web UI's static assets (HTML/CSS/JS) would also be served by FastAPI from within this container.
+
+This modular architecture aims to separate concerns, making the system easier to develop, test, and maintain. The asynchronous processing in the backend is fundamental to ensuring a responsive user experience, as audio generation can be time-consuming.

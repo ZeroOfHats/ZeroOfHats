@@ -1,0 +1,90 @@
+## Procast Nation Script Format Design
+
+This document outlines the proposed script format for Procast Nation, designed for human readability, ease of authoring, and machine parsability.
+
+**1. Character Dialogue:**
+   - **Format:** `CHARACTER_NAME: Dialogue text`
+   - **Rationale:** This is a widely accepted and easily parsable format (e.g., screenplay format). The colon clearly separates the speaker from the dialogue. Character names can be alphanumeric and include spaces. Character names should be in uppercase to distinguish them clearly from other text.
+
+**2. Narrator/Narration:**
+   - **Format:** `NARRATOR: Narration text`
+   - **Rationale:** Treat the narrator as a special character. This maintains consistency with the dialogue format, making parsing simpler.
+
+**3. Sound Effect Cues:**
+   - **Format:** `[SFX: A brief description of the sound effect, e.g., footsteps on gravel, distant thunder, car horn honking]`
+   - **Rationale:** Square brackets are common for stage directions or non-dialogue cues. The `SFX:` prefix makes it explicit. The description should be concise but clear enough for an SFX engine or a human sound designer.
+   - **Alternative for specific sounds:** `[SOUND: specific_sound_name.wav]` could be supported if direct file references are needed in the future. For initial implementation, descriptive text is preferred for generative SFX.
+
+**4. Pacing/Pause Instructions (Optional):**
+    - **Format:** `[PAUSE: short]`, `[PAUSE: medium]`, `[PAUSE: long]`, `[PAUSE: 2s]`, `[PAUSE: 500ms]`
+    - **Rationale:** Allows authors to specify pauses. Durations can be descriptive (short, medium, long) or specific (in seconds 's' or milliseconds 'ms').
+
+**5. Emotional Cues (Optional):**
+    - **Format:** `CHARACTER_NAME (emotion): Dialogue text` or `CHARACTER_NAME: (emotion) Dialogue text`
+    - **Examples:**
+        - `MARTHA (nervously): I don't like this place.`
+        - `JOHN: (shouting) We need to find that key!`
+    - **Rationale:** Parenthetical adverbs or descriptions, placed either after the character name (before the colon) or at the beginning of the dialogue text, are standard ways to convey emotion or tone. This can be parsed out and potentially used by advanced TTS engines. The emotion should be a single word or a short phrase.
+
+**6. Scene Markers (Optional but Recommended):**
+    - **Format:**
+        ```
+        SCENE_START
+        TITLE: Optional Scene Title
+        SETTING: Optional Scene Setting Description (e.g., A dark forest, A bustling cafe)
+        ```
+        ```
+        SCENE_END
+        ```
+    - **Rationale:** Clearly delineates scenes, aiding in organization and potential metadata extraction. `TITLE` and `SETTING` provide context. `SCENE_START` and `SCENE_END` are explicit markers.
+
+**Example Script:**
+
+```
+SCENE_START
+TITLE: The Lost Key
+SETTING: An old, windswept house on a hill, during a storm.
+
+NARRATOR: The old house stood on a windswept hill, its windows like dark eyes staring out to sea. Rain lashed against the panes.
+[SFX: heavy rain, wind howling]
+
+MARTHA (nervously): I don't like this place, John. It feels... wrong.
+[SFX: distant thunder]
+
+JOHN: Nonsense, Martha. It's just an old house.
+[PAUSE: short]
+JOHN: We need to find that key.
+[SFX: floorboards creaking]
+JOHN: See? Just the house settling.
+
+NARRATOR: John stepped further into the dusty hall. A faint scratching sound echoed from the shadows.
+[SFX: faint scratching sound]
+
+MARTHA: (whispering) What was that?
+JOHN (confidently): Probably just rats. Let's check the study.
+[SFX: footsteps on wooden floor, door creaking open]
+[PAUSE: 2s]
+
+NARRATOR: The study was filled with cobwebs, and an eerie silence.
+MARTHA: (scared) I want to leave.
+JOHN: Not until we find that key.
+
+SCENE_END
+```
+
+**Justification for Format Choice:**
+
+*   **Human Readability & Authoring:** The format is designed to be intuitive for writers, closely resembling common scriptwriting conventions. Minimal special characters are used, making it easy to type in any standard text editor. The use of uppercase for `CHARACTER_NAME` and `NARRATOR` enhances scannability.
+*   **Machine Parsability:**
+    *   Line-based parsing is generally straightforward. Each element type has a distinct signature.
+    *   Character dialogue: Lines starting with `[UPPERCASE_ALPHANUMERIC_WITH_SPACES_POSSIBLY_AND_NO_BRACKETS_COLON_AT_END]:` can be identified as dialogue.
+    *   Narration: `NARRATOR:` is a specific keyword.
+    *   SFX/Sound Cues: `[SFX: ...]` or `[SOUND: ...]` use distinct delimiters (`[` and `]`) and prefixes.
+    *   Pauses: `[PAUSE: ...]` is also clearly delimited.
+    *   Emotional Cues: Parentheticals `(...)` placed immediately after the character name or at the start of the dialogue text can be parsed using regular expressions (e.g., `CHARACTER_NAME (\(.*\)):` or `CHARACTER_NAME: (\(.*\))`).
+    *   Scene Markers: `SCENE_START` and `SCENE_END` are explicit keywords. `TITLE:` and `SETTING:` within a scene block are also clear.
+*   **Extensibility:** The use of `[KEYWORD: value]` for SFX and pauses allows for future expansion with other cue types (e.g., `[MUSIC: tense_theme_fade_in]`) if needed, without breaking existing parsers. New metadata lines like `SETTING:` within `SCENE_START` blocks can be added easily.
+*   **Simplicity:** Avoids complex structures like XML or JSON for the primary script input, which can be cumbersome for direct authoring. The plain text format is lightweight and universally accessible.
+*   **Alignment with Common Practices:** Many elements are borrowed from screenplay and radio play formatting, which have a rich history and established conventions.
+*   **Error Tolerance (Potential):** While strict parsing is good, the line-based nature and distinct markers could allow a parser to skip malformed lines with a warning, rather than failing entirely on a small error.
+```
