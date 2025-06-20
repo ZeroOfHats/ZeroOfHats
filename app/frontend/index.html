@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentralized Innovation Platform</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Decentralized Innovation Platform</h1>
+        </header>
+
+        <section id="inform-section">
+            <h2>Step 1: Share Knowledge (Inform)</h2>
+            <form id="inform-form">
+                <div>
+                    <label for="inform-topic">Topic:</label>
+                    <input type="text" id="inform-topic" name="topic" required>
+                </div>
+                <div>
+                    <label for="inform-knowledge">Knowledge/Insight:</label>
+                    <textarea id="inform-knowledge" name="knowledge" rows="5" required></textarea>
+                </div>
+                <button type="submit" id="submit-inform">Submit Information</button>
+            </form>
+            <div id="inform-messages" class="messages"></div>
+        </section>
+
+        <section id="discuss-section">
+            <h2>Step 2: Discuss Information</h2>
+
+            <div id="new-discussion-area">
+                <h3>Start a New Discussion</h3>
+                <form id="new-discussion-form">
+                    <div>
+                        <label for="discussion-title">Discussion Title:</label>
+                        <input type="text" id="discussion-title" name="title" required>
+                    </div>
+                    <div>
+                        <label for="discussion-initial-comment">Your Initial Comment:</label>
+                        <textarea id="discussion-initial-comment" name="initialComment" rows="4" required></textarea>
+                    </div>
+                    <div>
+                        <label for="discussion-user-id">Your User ID (Placeholder):</label>
+                        <input type="text" id="discussion-user-id" name="userId" value="user_abc123" required>
+                    </div>
+                    <button type="submit" id="submit-discussion">Start Discussion</button>
+                </form>
+                <div id="discussion-form-messages" class="messages"></div>
+            </div>
+
+            <div id="current-discussions-area">
+                <h3>Current Discussions</h3>
+                <button id="load-discussions-button">Load Discussions</button>
+                <div id="discussions-list">
+                    <!-- Discussions will be loaded here by JavaScript -->
+                </div>
+                <div id="discussions-list-messages" class="messages"></div>
+            </div>
+
+            <div id="discussion-detail-area" style="display:none;">
+                <hr>
+                <h3 id="selected-discussion-title-heading">Discussion: <span id="selected-discussion-title"></span></h3>
+
+                <div id="comments-area">
+                    <h4>Comments:</h4>
+                    <div id="comments-list">
+                        <!-- Comments will be loaded here -->
+                    </div>
+                    <div id="comments-list-messages" class="messages"></div>
+                </div>
+
+                <div id="new-comment-area">
+                    <h4>Add Your Comment:</h4>
+                    <form id="new-comment-form">
+                        <div>
+                            <label for="comment-text">Your Comment:</label>
+                            <textarea id="comment-text" name="commentText" rows="3" required></textarea>
+                        </div>
+                        <div>
+                            <label for="comment-user-id">Your User ID (Placeholder):</label>
+                            <input type="text" id="comment-user-id" name="userId" value="user_def456" required>
+                        </div>
+                        <input type="hidden" id="current-discussion-id-for-comment" name="discussionId">
+                        <button type="submit" id="submit-comment">Submit Comment</button>
+                    </form>
+                    <div id="comment-form-messages" class="messages"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="propose-vote-section">
+            <h2>Step 3 & 4: Propose & Vote</h2>
+
+            <div id="nft-mint-area">
+                <h3>Get a Voting NFT (Optional)</h3>
+                <form id="mint-nft-form">
+                    <div>
+                        <label for="nft-recipient-address">Your Ethereum Address:</label>
+                        <input type="text" id="nft-recipient-address" name="recipientAddress" placeholder="0x...">
+                    </div>
+                    <button type="button" id="mint-nft-button">Mint NFT</button>
+                </form>
+                <div id="mint-nft-messages" class="messages"></div>
+            </div>
+            <hr>
+            <div id="new-proposal-area">
+                <h3>Create a New Proposal</h3>
+                <form id="new-proposal-form">
+                    <div>
+                        <label for="proposal-description">Proposal Description:</label>
+                        <textarea id="proposal-description" name="description" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" id="submit-proposal">Submit Proposal</button>
+                </form>
+                <div id="proposal-form-messages" class="messages"></div>
+            </div>
+            <hr>
+            <div id="current-proposals-area">
+                <h3>Current Proposals</h3>
+                <button id="load-proposals-button">Load Proposals</button>
+                <div id="proposals-list">
+                    <!-- Proposals will be loaded here -->
+                </div>
+                <div id="proposals-list-messages" class="messages"></div>
+            </div>
+        </section>
+
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

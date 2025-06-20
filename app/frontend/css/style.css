@@ -1,0 +1,336 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    width: 80%;
+    margin: auto;
+    overflow: hidden;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+header {
+    background: #333;
+    color: #fff;
+    padding: 1rem 0;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    margin: 0;
+}
+
+section {
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+}
+
+h2 {
+    color: #333;
+    margin-top: 0;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* Important for 100% width */
+}
+
+textarea {
+    resize: vertical;
+}
+
+button[type="submit"] {
+    display: block;
+    background-color: #333;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button[type="submit"]:hover {
+    background-color: #555;
+}
+
+.messages {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.messages.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.messages.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Styles for Discuss Section */
+#discuss-section h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#new-discussion-area, #current-discussions-area {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+#discussions-list {
+    margin-top: 10px;
+}
+
+#discussions-list ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+#discussions-list li {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+#discussions-list li h4 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    color: #337ab7; /* A slightly different color for discussion titles */
+}
+
+#discussions-list li p {
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+#discussions-list li small {
+    font-size: 0.8em;
+    color: #777;
+}
+
+#load-discussions-button {
+    background-color: #5bc0de;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+#load-discussions-button:hover {
+    background-color: #31b0d5;
+}
+
+/* Styles for Discussion Detail Area and Comments */
+#discussion-detail-area {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #e9ecef; /* A slightly different background for this area */
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+#selected-discussion-title-heading {
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+#selected-discussion-title {
+    font-weight: bold;
+    color: #007bff;
+}
+
+#comments-area, #new-comment-area {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+#comments-area h4, #new-comment-area h4 {
+    margin-top: 0;
+    color: #343a40;
+}
+
+#comments-list ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+#comments-list .comment-item {
+    padding: 8px;
+    border-bottom: 1px dotted #ccc;
+    font-size: 0.95em;
+}
+
+#comments-list .comment-item:last-child {
+    border-bottom: none;
+}
+
+#comments-list .comment-item p {
+    margin: 5px 0;
+}
+
+#comments-list .comment-item strong {
+    color: #555;
+}
+
+#comments-list .comment-item small {
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+#new-comment-form textarea {
+    min-height: 60px;
+}
+
+/* Making discussion items clickable/focusable */
+.discussion-item {
+    cursor: pointer;
+    padding: 10px; /* Ensure padding is part of the item for click */
+    transition: background-color 0.2s ease-in-out;
+}
+
+.discussion-item:hover, .discussion-item:focus {
+    background-color: #e9ecef; /* Highlight on hover/focus */
+    outline: 1px dashed #007bff; /* Focus outline */
+}
+
+/* Styles for Propose & Vote Section */
+#propose-vote-section h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+#nft-mint-area,
+#new-proposal-area,
+#current-proposals-area {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+#mint-nft-form button[type="button"], /* Style for the mint button specifically if needed */
+#new-proposal-form button[type="submit"] { /* Re-confirming styles if specific needed */
+    /* Standard button styles already applied, can add specifics here */
+}
+
+#proposals-list {
+    margin-top: 10px;
+}
+
+.proposal-item {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.proposal-item h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #28a745; /* Greenish for proposals */
+}
+
+.proposal-item p {
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.proposal-item strong {
+    color: #333;
+}
+
+.vote-buttons {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    display: flex;
+    gap: 10px; /* Spacing between vote buttons */
+}
+
+.vote-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+    transition: background-color 0.2s ease;
+}
+
+/* Specific colors for vote buttons */
+.vote-button[data-vote-type="0"] { background-color: #28a745; } /* Yes - Green */
+.vote-button[data-vote-type="0"]:hover { background-color: #218838; }
+
+.vote-button[data-vote-type="1"] { background-color: #dc3545; } /* No - Red */
+.vote-button[data-vote-type="1"]:hover { background-color: #c82333; }
+
+.vote-button[data-vote-type="2"] { background-color: #ffc107; color: #212529;} /* Abstain - Yellow */
+.vote-button[data-vote-type="2"]:hover { background-color: #e0a800; }
+
+.vote-button[data-vote-type="3"] { background-color: #17a2b8; } /* To Discussion - Teal */
+.vote-button[data-vote-type="3"]:hover { background-color: #138496; }
+
+
+#load-proposals-button { /* If different from other load buttons */
+    background-color: #007bff;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+#load-proposals-button:hover {
+    background-color: #0056b3;
+}
+
+.proposal-vote-messages {
+    margin-top: 8px;
+    font-size: 0.9em;
+}

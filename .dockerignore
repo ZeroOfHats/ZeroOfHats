@@ -1,0 +1,22 @@
+# General Node.js
+node_modules
+npm-debug.log
+*.log
+
+# Backend specific (if node_modules is not at root)
+app/backend/node_modules
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Git stuff
+.git
+.gitignore
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Environment files (if any, though not explicitly used yet)
+.env
