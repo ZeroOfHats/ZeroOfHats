@@ -1,0 +1,6 @@
+ollama
+selenium
+beautifulsoup4
+# nltk # Uncomment if sentence chunking strategy is implemented and used
+chromadb
+# Add other dependencies as they arise
