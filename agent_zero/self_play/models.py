@@ -19,7 +19,7 @@ class Objective:
     initial_prompt: str
     objective_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     status: Status = Status.ACTIVE
-    tasks: List['Task'] = field(default_factory=list) # Direct link to its tasks
+    # tasks: List['Task'] = field(default_factory=list) # Removed to enforce TaskListManager as single source of truth. Tasks have objective_id.
 
 @dataclass
 class Task:

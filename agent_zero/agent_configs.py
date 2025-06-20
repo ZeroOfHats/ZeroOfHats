@@ -6,6 +6,12 @@ DEFAULT_CHAT_MODEL_LIST = ["mistral:7b-instruct-q5_K_M", "llama2:7b-chat-q5_K_M"
 DEFAULT_UTILITY_MODEL_LIST = ["tinydolphin:1.1b-q4_K_M", "orca-mini:3b-q4_K_M"]
 DEFAULT_EMBEDDING_MODEL_NAME = "nomic-embed-text:latest"
 
+# Default RAG/Experience parameters - can be customized per archetype
+DEFAULT_RAG_RESULTS_COUNT = 3
+DEFAULT_RAG_MAX_CONTEXT_LENGTH = 2500
+DEFAULT_EXPERIENCE_RESULTS_COUNT = 2
+DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH = 1200
+
 AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
     {
         "config_name": "DefaultOrchestrator",
@@ -25,7 +31,11 @@ AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
         "chat_models": DEFAULT_CHAT_MODEL_LIST,
         "utility_models": DEFAULT_UTILITY_MODEL_LIST,
         "embedding_model": DEFAULT_EMBEDDING_MODEL_NAME,
-        "dedicated_chroma_collection_name": "orchestrator_general_memory"
+        "dedicated_chroma_collection_name": "orchestrator_general_memory",
+        "rag_results_count": DEFAULT_RAG_RESULTS_COUNT,
+        "rag_max_context_length": DEFAULT_RAG_MAX_CONTEXT_LENGTH + 500, # Orchestrator might need more context
+        "experience_results_count": DEFAULT_EXPERIENCE_RESULTS_COUNT,
+        "experience_max_context_length": DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH
     },
     {
         "config_name": "WebResearcher",
@@ -45,10 +55,12 @@ AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
         "chat_models": DEFAULT_CHAT_MODEL_LIST,
         "utility_models": DEFAULT_UTILITY_MODEL_LIST,
         "embedding_model": DEFAULT_EMBEDDING_MODEL_NAME,
-        "dedicated_chroma_collection_name": "web_research_findings"
+        "dedicated_chroma_collection_name": "web_research_findings",
+        "rag_results_count": 5,
+        "rag_max_context_length": DEFAULT_RAG_MAX_CONTEXT_LENGTH + 1000,
+        "experience_results_count": 1,
+        "experience_max_context_length": DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH - 500
     },
-
-    # --- New Archetype Definitions ---
     {
         "config_name": "Analyst_Default",
         "persona_name": "InformationAnalyst",
@@ -68,7 +80,11 @@ AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
         "chat_models": DEFAULT_CHAT_MODEL_LIST,
         "utility_models": DEFAULT_UTILITY_MODEL_LIST,
         "embedding_model": DEFAULT_EMBEDDING_MODEL_NAME,
-        "dedicated_chroma_collection_name": "analyst_processed_data"
+        "dedicated_chroma_collection_name": "analyst_processed_data",
+        "rag_results_count": 4,
+        "rag_max_context_length": DEFAULT_RAG_MAX_CONTEXT_LENGTH + 500,
+        "experience_results_count": DEFAULT_EXPERIENCE_RESULTS_COUNT,
+        "experience_max_context_length": DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH
     },
     {
         "config_name": "Strategist_Default",
@@ -89,7 +105,11 @@ AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
         "chat_models": DEFAULT_CHAT_MODEL_LIST,
         "utility_models": DEFAULT_UTILITY_MODEL_LIST,
         "embedding_model": DEFAULT_EMBEDDING_MODEL_NAME,
-        "dedicated_chroma_collection_name": "strategist_plans_and_blueprints"
+        "dedicated_chroma_collection_name": "strategist_plans_and_blueprints",
+        "rag_results_count": DEFAULT_RAG_RESULTS_COUNT,
+        "rag_max_context_length": DEFAULT_RAG_MAX_CONTEXT_LENGTH,
+        "experience_results_count": 3,
+        "experience_max_context_length": DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH + 300
     },
     {
         "config_name": "Critic_Default",
@@ -110,7 +130,11 @@ AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
         "chat_models": DEFAULT_CHAT_MODEL_LIST,
         "utility_models": DEFAULT_UTILITY_MODEL_LIST,
         "embedding_model": DEFAULT_EMBEDDING_MODEL_NAME,
-        "dedicated_chroma_collection_name": "critic_evaluation_frameworks"
+        "dedicated_chroma_collection_name": "critic_evaluation_frameworks",
+        "rag_results_count": 2,
+        "rag_max_context_length": DEFAULT_RAG_MAX_CONTEXT_LENGTH - 500,
+        "experience_results_count": 4,
+        "experience_max_context_length": DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH + 500
     },
     {
         "config_name": "Implementer_Default",
@@ -130,7 +154,11 @@ AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
         "chat_models": DEFAULT_CHAT_MODEL_LIST,
         "utility_models": DEFAULT_UTILITY_MODEL_LIST,
         "embedding_model": DEFAULT_EMBEDDING_MODEL_NAME,
-        "dedicated_chroma_collection_name": "implementer_execution_logs"
+        "dedicated_chroma_collection_name": "implementer_execution_logs",
+        "rag_results_count": DEFAULT_RAG_RESULTS_COUNT,
+        "rag_max_context_length": DEFAULT_RAG_MAX_CONTEXT_LENGTH,
+        "experience_results_count": DEFAULT_EXPERIENCE_RESULTS_COUNT,
+        "experience_max_context_length": DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH
     },
     {
         "config_name": "Synthesizer_Default",
@@ -150,7 +178,11 @@ AGENT_CONFIGURATIONS: List[Dict[str, Any]] = [
         "chat_models": DEFAULT_CHAT_MODEL_LIST,
         "utility_models": DEFAULT_UTILITY_MODEL_LIST,
         "embedding_model": DEFAULT_EMBEDDING_MODEL_NAME,
-        "dedicated_chroma_collection_name": "synthesizer_creative_works"
+        "dedicated_chroma_collection_name": "synthesizer_creative_works",
+        "rag_results_count": 4,
+        "rag_max_context_length": DEFAULT_RAG_MAX_CONTEXT_LENGTH + 500,
+        "experience_results_count": 2,
+        "experience_max_context_length": DEFAULT_EXPERIENCE_MAX_CONTEXT_LENGTH
     }
 ]
 
@@ -184,7 +216,9 @@ if __name__ == '__main__':
     required_keys = [
         "config_name", "persona_name", "specialization_description",
         "core_directives", "chat_models", "utility_models",
-        "embedding_model", "dedicated_chroma_collection_name"
+        "embedding_model", "dedicated_chroma_collection_name",
+        "rag_results_count", "rag_max_context_length",
+        "experience_results_count", "experience_max_context_length"
     ]
 
     for i, conf in enumerate(AGENT_CONFIGURATIONS):
@@ -198,17 +232,12 @@ if __name__ == '__main__':
 
         if not missing_keys_for_this_config:
             print(f"  Persona: {conf['persona_name']}")
-            print(f"  Specialization: {conf['specialization_description'][:60]}...")
-            # print(f"  Core Directives: {conf['core_directives'][:1]}...") # Can be verbose
-            # print(f"  Chat Models: {conf['chat_models']}")
-            # print(f"  Utility Models: {conf['utility_models']}")
-            # print(f"  Embedding Model: {conf['embedding_model']}")
-            print(f"  Dedicated Collection: {conf['dedicated_chroma_collection_name']}")
+            print(f"  RAG Results: {conf['rag_results_count']}, Max Context: {conf['rag_max_context_length']}")
+            print(f"  Exp Results: {conf['experience_results_count']}, Max Context: {conf['experience_max_context_length']}")
             if not isinstance(conf['core_directives'], list) or not conf['core_directives']:
                  print(f"  WARNING: Config '{conf['config_name']}' has empty or invalid 'core_directives'.")
         else:
             print(f"  INVALID CONFIG: '{conf.get('config_name', 'Unknown')}' due to missing keys: {missing_keys_for_this_config}")
-
 
     if all_configs_valid:
         print("\nAll defined configurations appear to have the required keys structure.")
@@ -219,15 +248,6 @@ if __name__ == '__main__':
     analyst_config = load_agent_from_config("Analyst_Default")
     if analyst_config:
         print(f"Loaded Analyst Persona: {analyst_config.get('persona_name')}")
-        print(f"Analyst Directives: {analyst_config.get('core_directives')}")
+        print(f"Analyst RAG settings: {analyst_config.get('rag_results_count')} results, {analyst_config.get('rag_max_context_length')} max length.")
     else:
         print("Failed to load 'Analyst_Default'")
-
-    print("\n--- Example Loading 'Critic_Default' ---")
-    critic_config = load_agent_from_config("Critic_Default")
-    if critic_config:
-        print(f"Loaded Critic Persona: {critic_config.get('persona_name')}")
-        print(f"Critic Collection: {critic_config.get('dedicated_chroma_collection_name')}")
-
-    else:
-        print("Failed to load 'Critic_Default'")
