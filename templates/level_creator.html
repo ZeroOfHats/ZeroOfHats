@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labyrinth2D - Level Creator</title>
+    <link rel="stylesheet" href="/static/css/style.css"> <!-- Link main style -->
+    <style>
+        /* Additional styles specific to level creator */
+        .level-creator-container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .map-management, .room-list-area, .room-editor-area, .connection-editor-area {
+            border: 1px solid #ccc; padding: 15px; background-color: #f9f9f9;
+            min-width: 300px;
+        }
+        .map-management div, .room-editor-area div, .connection-editor-area div { margin-bottom: 10px; }
+        .map-management label, .room-editor-area label, .connection-editor-area label { display: inline-block; width: 120px; }
+        #currentMapData { white-space: pre-wrap; background-color: #eee; padding: 10px; max-height: 300px; overflow-y: auto; }
+        #roomList { list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; border: 1px solid #ddd;}
+        #roomList li { padding: 5px; border-bottom: 1px solid #eee; cursor: pointer; }
+        #roomList li:hover { background-color: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <h1>Labyrinth2D - Level Creator</h1>
+    <p><a href="/">Back to Game</a></p>
+
+    <div class="level-creator-container">
+        <div class="map-management">
+            <h3>Map Management</h3>
+            <div>
+                <label for="mapIdInput">New Map ID/Name:</label>
+                <input type="text" id="mapIdInput" placeholder="my_new_labyrinth">
+                <button onclick="lc_createNewMap()">Create New Map</button>
+            </div>
+            <div>
+                <label for="savedMapsList">Saved Maps:</label>
+                <select id="savedMapsList"></select>
+                <button onclick="lc_loadSelectedMap()">Load Map</button>
+                <button onclick="lc_refreshMapList()">Refresh List</button>
+            </div>
+            <div>
+                <button onclick="lc_saveCurrentMap()">Save Current Map</button>
+                <button onclick="lc_setActiveMap()">Set as Active Game Map</button>
+            </div>
+            <h4>Current Map Details (<span id="currentMapIdDisplay">None</span>):</h4>
+            <pre id="currentMapData">No map loaded.</pre>
+        </div>
+
+        <div class="room-list-area">
+                <h3>Rooms in Map (<span id="roomCountDisplay">0</span>)</h3>
+            <ul id="roomList">
+                <li>No map loaded or no rooms.</li>
+            </ul>
+                <button onclick="lc_showAddRoomForm()">Add New Room</button>
+        </div>
+
+            <div class="room-editor-area"> <!-- Was display:none; now it will be shown/hidden by JS -->
+                <h3 id="roomEditorTitle">Room Editor</h3>
+                <input type="hidden" id="editingRoomId"> <!-- To store ID if editing existing room -->
+                <div>
+                    <label for="roomIdInput">Room ID:</label>
+                    <input type="text" id="roomIdInput" placeholder="unique_room_id">
+                </div>
+                <div>
+                    <label for="roomDisplayNameInput">Display Name:</label>
+                    <input type="text" id="roomDisplayNameInput" placeholder="The Grand Hall">
+                </div>
+                <div>
+                    <label for="roomGeneratorScriptSelect">Generator Script:</label>
+                    <select id="roomGeneratorScriptSelect"></select>
+                    <button type="button" onclick="lc_refreshGenScriptsForRoomEditor()">Refresh Scripts</button>
+                </div>
+                <div>
+                    <label for="roomParamsTextarea">Room Params (JSON):</label>
+                    <textarea id="roomParamsTextarea" rows="4" placeholder='{ "difficulty": "hard", "theme": "crypt" }'></textarea>
+                </div>
+                <button onclick="lc_saveRoomDetails()">Save Room</button>
+                <button onclick="lc_deleteSelectedRoom()" id="deleteRoomButton" style="display:none;">Delete Room</button>
+                <button onclick="lc_hideRoomEditor()">Cancel</button>
+        </div>
+
+            <div class="connection-editor-area"> <!-- Was display:none; -->
+            <h3>Connection Editor</h3>
+                <p>Selected Room for Connection: <b id="connSelectedRoomDisplay">None</b> (Shift+Click a room in list)</p>
+                <div>
+                    <label for="connIdInput">Connection ID/Exit Name:</label>
+                    <input type="text" id="connIdInput" placeholder="exit_north_to_corridor">
+                </div>
+                <div>
+                    <label for="connSourceCoordsInput">Source Exit Coords (X,Y):</label>
+                    <input type="text" id="connSourceCoordsInput" placeholder="49,25">
+                </div>
+                <div>
+                    <label for="connTargetRoomSelect">Target Room:</label>
+                    <select id="connTargetRoomSelect"></select>
+                </div>
+                <div>
+                    <label for="connTargetEntryCoordsInput">Target Entry Coords (X,Y):</label>
+                    <input type="text" id="connTargetEntryCoordsInput" placeholder="0,25">
+                </div>
+                <div>
+                    <label for="connBidirectionalCheckbox">Bidirectional:</label>
+                    <input type="checkbox" id="connBidirectionalCheckbox" checked>
+                </div>
+                <button onclick="lc_addConnection()">Add/Update Connection</button>
+        </div>
+    </div>
+
+    <script src="/static/js/level_creator.js"></script>
+</body>
+</html>

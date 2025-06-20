@@ -1,0 +1,5 @@
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+Jinja2>=3.0.0
+# pydantic is a dependency of fastapi, usually no need to list explicitly
+# python-multipart might be needed if we add file uploads for scripts later
