@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Low-Bit Dungeon Scroller</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Low-Bit Dungeon Scroller</h1>
+    <div id="game-container">
+        <div id="main-game-area">
+            <pre id="game-grid">..........
+..........
+..........
+..........
+.....@....
+..........
+..........
+..........
+..........
+..........</pre>
+            <div id="player-info-panel" class="panel">
+                <h3>Player Info</h3>
+                <div>X: <span id="player-x">5</span>, Y: <span id="player-y">4</span></div>
+                <div>Messages:</div>
+                <div id="message-log">Welcome!</div>
+            </div>
+        </div>
+        <div id="controls-and-info">
+            <div id="scripting-panel" class="panel">
+                <h3>Python Scripting</h3>
+                <textarea id="code-editor" placeholder="Enter Python script here..."></textarea>
+                <button id="run-script-button">Run Script</button>
+                <div>Output:</div>
+                <div id="script-output-console">(Script output will appear here)</div>
+            </div>
+            <div id="rag-panel" class="panel">
+                <h3>RAG Assistant</h3>
+                <input type="text" id="rag-query-input" placeholder="Ask RAG (e.g., how to move player?)">
+                <button id="ask-rag-button">Ask RAG</button>
+                <div>Suggestions:</div>
+                <div id="rag-suggestions-display">(RAG suggestions will appear here)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameGrid = document.getElementById('game-grid');
+        const playerXDisplay = document.getElementById('player-x');
+        const playerYDisplay = document.getElementById('player-y');
+        const messageLog = document.getElementById('message-log');
+        const codeEditor = document.getElementById('code-editor');
+        const runScriptButton = document.getElementById('run-script-button');
+        const scriptOutputConsole = document.getElementById('script-output-console');
+        const ragQueryInput = document.getElementById('rag-query-input');
+        const askRagButton = document.getElementById('ask-rag-button');
+        const ragSuggestionsDisplay = document.getElementById('rag-suggestions-display');
+
+        document.addEventListener('keydown', async (event) => {
+            let direction = null;
+            if (event.key === 'ArrowLeft') {
+                direction = 'left';
+            } else if (event.key === 'ArrowRight') {
+                direction = 'right';
+            }
+
+            if (direction) {
+                event.preventDefault(); // Prevent scrolling
+                console.log(`Attempting to move: ${direction}`);
+                try {
+                    const response = await fetch('/move/' + direction, { method: 'POST' });
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    console.log('Move response:', data);
+
+                    gameGrid.textContent = data.grid;
+                    playerXDisplay.textContent = data.player_pos.x;
+                    playerYDisplay.textContent = data.player_pos.y;
+                    if(data.message) {
+                         const newMessage = document.createElement('div');
+                         newMessage.textContent = data.message;
+                         messageLog.appendChild(newMessage);
+                         messageLog.scrollTop = messageLog.scrollHeight;
+                    }
+
+                } catch (error) {
+                    console.error('Error moving player:', error);
+                    const newMessage = document.createElement('div');
+                    newMessage.textContent = 'Error moving: ' + error.message;
+                    messageLog.appendChild(newMessage);
+                    messageLog.scrollTop = messageLog.scrollHeight;
+                }
+            }
+        });
+
+        runScriptButton.addEventListener('click', async () => {
+            const scriptCode = codeEditor.value;
+            scriptOutputConsole.textContent = "Executing...";
+            try {
+                const response = await fetch('/run_script', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: scriptCode })
+                });
+                const result = await response.json();
+                if (result.error) {
+                    scriptOutputConsole.textContent = `Error: ${result.error}\n${result.traceback || ''}`;
+                } else {
+                    scriptOutputConsole.textContent = result.output || '(No output)';
+                }
+                if(result.message_log) {
+                    result.message_log.forEach(msg => {
+                        const newMessage = document.createElement('div');
+                        newMessage.textContent = msg;
+                        messageLog.appendChild(newMessage);
+                    });
+                    messageLog.scrollTop = messageLog.scrollHeight;
+                }
+            } catch (error) {
+                scriptOutputConsole.textContent = `Network/Request Error: ${error}`;
+            }
+        });
+
+        askRagButton.addEventListener('click', async () => {
+            const query = ragQueryInput.value;
+            ragSuggestionsDisplay.textContent = "Querying RAG...";
+            try {
+                const response = await fetch('/rag_query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                const result = await response.json();
+                ragSuggestionsDisplay.innerHTML = '';
+                if (result.suggestions && result.suggestions.length > 0) {
+                    result.suggestions.forEach(sugg => {
+                        const suggDiv = document.createElement('div');
+                        suggDiv.innerHTML = `<strong>${sugg.title || 'Suggestion'}:</strong><br><pre>${sugg.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>`;
+                        ragSuggestionsDisplay.appendChild(suggDiv);
+                    });
+                } else {
+                    ragSuggestionsDisplay.textContent = "No suggestions found.";
+                }
+            } catch (error) {
+                ragSuggestionsDisplay.textContent = `Network/Request Error: ${error}`;
+            }
+        });
+        console.log("Basic web game scaffold loaded. JS running.");
+    </script>
+</body>
+</html>

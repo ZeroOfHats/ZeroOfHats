@@ -1,0 +1,89 @@
+body {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #000;
+    color: #0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+}
+#game-container {
+    display: flex;
+    gap: 20px;
+}
+#main-game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#game-grid {
+    width: 200px; /* Approx 10 chars * 20px/char */
+    height: 200px; /* Approx 10 lines * 20px/line */
+    border: 1px solid #0f0;
+    padding: 10px;
+    font-size: 18px; /* Adjust for character size */
+    line-height: 1.0; /* Adjust for tight grid */
+    white-space: pre;
+    overflow: hidden; /* Ensure it stays 10x10 visual */
+}
+#controls-and-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 300px;
+}
+.panel {
+    border: 1px solid #0f0;
+    padding: 10px;
+}
+textarea {
+    background-color: #111;
+    color: #0f0;
+    border: 1px solid #0f0;
+    width: 95%;
+    min-height: 80px;
+    font-family: 'Courier New', Courier, monospace;
+}
+input[type="text"] {
+    background-color: #111;
+    color: #0f0;
+    border: 1px solid #0f0;
+    padding: 5px;
+    width: calc(95% - 10px);
+}
+button {
+    background-color: #030;
+    color: #0f0;
+    border: 1px solid #0f0;
+    padding: 8px;
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+}
+button:hover {
+    background-color: #050;
+}
+h2, h3 {
+    margin-top: 0;
+}
+#message-log {
+    height: 60px;
+    overflow-y: scroll;
+    border: 1px dashed #090;
+    padding: 5px;
+    font-size: 0.9em;
+}
+#rag-suggestions-display {
+     height: 100px;
+     overflow-y: scroll;
+     border: 1px dashed #090;
+     padding: 5px;
+     font-size: 0.9em;
+}
+#script-output-console {
+    height: 80px;
+    overflow-y: scroll;
+    border: 1px dashed #090;
+    padding: 5px;
+    font-size: 0.9em;
+}

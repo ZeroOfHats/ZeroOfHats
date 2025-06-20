@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG-Powered Dungeon Scroller</title>
+    <style>
+        body { font-family: monospace; background-color: #1e1e1e; color: #d4d4d4; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .container { display: flex; width: 90%; max-width: 1200px; margin-top: 20px; }
+        .left-panel { flex: 2; padding: 10px; }
+        .right-panel { flex: 1; padding: 10px; border-left: 1px solid #333; }
+        #game-title { text-align: center; font-size: 2em; margin-bottom: 20px; }
+        #game-display { width: auto; white-space: pre; font-size: 1.5em; line-height: 1; border: 1px solid #333; padding: 10px; background-color: #000; color: #3f3; margin: 0 auto; display: inline-block;}
+        .ui-section { margin-bottom: 20px; }
+        h3 { color: #569cd6; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        textarea { width: 95%; height: 150px; background-color: #252526; border: 1px solid #333; color: #d4d4d4; padding: 5px; }
+        input[type="text"] { width: 95%; padding: 8px; background-color: #252526; border: 1px solid #333; color: #d4d4d4; }
+        button { padding: 8px 15px; background-color: #007acc; border: none; color: white; cursor: pointer; }
+        button:hover { background-color: #005f99; }
+        #script-output, #rag-suggestions { height: 100px; background-color: #252526; border: 1px solid #333; padding: 5px; overflow-y: auto; white-space: pre-wrap; }
+        #player-info { background-color: #252526; border: 1px solid #333; padding: 10px;}
+    </style>
+</head>
+<body>
+    <div id="game-title">RAG-Powered Dungeon Scroller</div>
+
+    <div class="container">
+        <div class="left-panel">
+            <h3>Game World</h3>
+            <div id="game-display-container" style="text-align: center;">
+                 <pre id="game-display">{% for row in game_map %}{{ row }}
+{% endfor %}</pre>
+            </div>
+
+            <div class="ui-section">
+                <h3>Code Editor</h3>
+                <textarea id="code-editor" placeholder="Enter your Python script here..."></textarea>
+                <button id="run-script-button">Run Script</button>
+            </div>
+
+            <div class="ui-section">
+                <h3>Script Output / Console</h3>
+                <div id="script-output"></div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="ui-section">
+                <h3>Player Info</h3>
+                <div id="player-info">
+                    Position: (X: {{ player_pos.x }}, Y: {{ player_pos.y }}) <br>
+                    {_ More stats here later _}
+                </div>
+            </div>
+
+            <div class="ui-section">
+                <h3>RAG Query</h3>
+                <input type="text" id="rag-query-input" placeholder="Ask the RAG for help...">
+                <button id="rag-query-button">Query RAG</button>
+            </div>
+
+            <div class="ui-section">
+                <h3>RAG Suggestions</h3>
+                <div id="rag-suggestions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameDisplay = document.getElementById('game-display');
+        const playerInfo = document.getElementById('player-info');
+        // Initial player position from Flask
+        let currentPlayerPos = {{ player_pos | tojson }};
+
+        function updateGameDisplay(mapData) {
+            // The mapData from server is already a list of strings, joined by newline for pre
+            gameDisplay.textContent = mapData.join('\\n');
+        }
+
+        function updatePlayerInfo(playerPosition) {
+            playerInfo.innerHTML = `Position: (X: ${playerPosition.x}, Y: ${playerPosition.y}) <br> {_ More stats here later _}`;
+        }
+
+        async function movePlayer(direction) {
+            try {
+                const response = await fetch(`/move/${direction}`, { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                updateGameDisplay(data.game_map);
+                updatePlayerInfo(data.player_pos);
+                currentPlayerPos = data.player_pos; // Update local cache of player position
+            } catch (error) {
+                console.error("Failed to move player:", error);
+                // Optionally display this error to the user in the script-output console
+                const scriptOutput = document.getElementById('script-output');
+                scriptOutput.textContent += `\nError moving player: ${error.message}`;
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            let direction = null;
+            switch (event.key) {
+                case 'ArrowUp':
+                case 'w':
+                    direction = 'up';
+                    break;
+                case 'ArrowDown':
+                case 's':
+                    direction = 'down';
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                    direction = 'left';
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                    direction = 'right';
+                    break;
+            }
+            if (direction) {
+                event.preventDefault(); // Prevent default arrow key behavior (scrolling)
+                movePlayer(direction);
+            }
+        });
+
+        // Initial setup (already handled by Flask template rendering for the first load)
+        console.log("Game initialized. Current map:", {{ game_map | tojson }});
+        console.log("Player position:", currentPlayerPos);
+
+    </script>
+</body>
+</html>
