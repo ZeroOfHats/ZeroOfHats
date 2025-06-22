@@ -1,0 +1,7 @@
+python-dotenv
+requests
+pathvalidate
+
+# We will add ollama and chromadb client libraries later:
+# ollama
+# chromadb-client
