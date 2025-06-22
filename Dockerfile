@@ -74,6 +74,7 @@ COPY ./0README.txt /app/0README.txt
 
 # Install Agent Zero and its dependencies
 COPY ./agent_zero /app/agent_zero
+COPY ./run_agent_cli.py /app/run_agent_cli.py
 # requirements.txt will be updated by the next step to include selenium, beautifulsoup4
 RUN pip3 install --no-cache-dir -r /app/agent_zero/requirements.txt
 

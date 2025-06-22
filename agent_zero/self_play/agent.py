@@ -1,112 +1,125 @@
 # agent_zero/self_play/agent.py
 import uuid
-import ollama
+# import ollama # Replaced by LLMClient
 from typing import List, Tuple, Optional, Dict, Any
 import re
 import time
 from enum import Enum
 import datetime
 
+from ..llm_client import LLMClient
+from ..config_manager import config # Use the global config instance
 from .models import Objective, Task, Status
 from ..tools.web_scraper import get_text_from_url
 from ..utils.text_processing import split_text_into_chunks
 from ..memory.chroma_service import ChromaService
+# from ..utils.file_utils import ensure_directory_exists # Not directly used here yet, but good for future
 
-DEFAULT_CHAT_MODELS = ["mistral:7b-instruct-q5_K_M", "llama2:7b-chat-q5_K_M"]
-DEFAULT_UTILITY_MODELS = ["tinydolphin:1.1b-q4_K_M", "orca-mini:3b-q4_K_M", "phi:2.7b-chat-q4_K_M"]
-DEFAULT_EMBEDDING_MODEL = "nomic-embed-text:latest"
-FALLBACK_MODEL = "orca-mini:3b-q4_K_M"
-EXPERIENCE_MEMORY_COLLECTION = "agent_experience_memory"
+# Constants previously defined here are now fetched from config_manager
+# DEFAULT_CHAT_MODELS, DEFAULT_UTILITY_MODELS, DEFAULT_EMBEDDING_MODEL, FALLBACK_MODEL
+# EXPERIENCE_MEMORY_COLLECTION is also now in config_manager
 
 class AgentState(Enum): IDLE="idle"; TASKED="tasked"; SELF_IMPROVING="self_improving"; SUSPENDED="suspended"
 
 class Agent:
     def __init__(self,
                  agent_id: Optional[str] = None,
-                 ollama_host: str = 'http://localhost:11434',
-                 persona_name: str = "Orchestrator",
-                 chat_models: Optional[List[str]] = None,
-                 utility_models: Optional[List[str]] = None,
-                 embedding_model: Optional[str] = None,
-                 chroma_service_path: str = "/agent_data/chroma",
-                 specialization_description: Optional[str] = "A general-purpose AI assistant.",
-                 core_directives: Optional[List[str]] = None,
+                 # ollama_host is now managed by LLMClient, which gets it from config_manager
+                 persona_name: Optional[str] = None, # Allow None, will use config default
+                 chat_models: Optional[List[str]] = None, # Allow None
+                 utility_models: Optional[List[str]] = None, # Allow None
+                 embedding_model: Optional[str] = None, # Allow None
+                 chroma_service_path: Optional[str] = None, # Allow None
+                 specialization_description: Optional[str] = None, # Allow None
+                 core_directives: Optional[List[str]] = None, # Allow None
                  dedicated_chroma_collection_name: Optional[str] = None,
-                 # New RAG/Experience parameters
-                 rag_results_count: int = 3,
-                 rag_max_context_length: int = 2500,
-                 experience_results_count: int = 2,
-                 experience_max_context_length: int = 1200
+                 rag_results_count: Optional[int] = None, # Allow None
+                 rag_max_context_length: Optional[int] = None, # Allow None
+                 experience_results_count: Optional[int] = None, # Allow None
+                 experience_max_context_length: Optional[int] = None # Allow None
                 ):
 
         self.agent_id = agent_id if agent_id else str(uuid.uuid4())
-        self.ollama_client = ollama.Client(host=ollama_host)
-        self.persona_name = persona_name
-        self.chat_models = chat_models if chat_models is not None else list(DEFAULT_CHAT_MODELS)
-        self.utility_models = utility_models if utility_models is not None else list(DEFAULT_UTILITY_MODELS)
-        self.embedding_model_name = embedding_model if embedding_model is not None else DEFAULT_EMBEDDING_MODEL
-        self.primary_model = self.chat_models[0] if self.chat_models else FALLBACK_MODEL
-        self.specialization_description = specialization_description if specialization_description else "A general-purpose AI assistant."
-        self.core_directives = core_directives if core_directives else ["Be helpful and efficient."]
-        self.chroma_service_path = chroma_service_path
-        self.default_memory_collection = dedicated_chroma_collection_name if dedicated_chroma_collection_name else f"agent_{self.agent_id}_memory"
+
+        # Initialize LLMClient using global config for host
+        self.llm_client = LLMClient(host=config.get_ollama_host())
+
+        self.persona_name = persona_name if persona_name is not None else config.default_persona
+        self.chat_models = chat_models if chat_models is not None else config.get_chat_model_list()
+        self.utility_models = utility_models if utility_models is not None else config.get_utility_model_list()
+        self.embedding_model_name = embedding_model if embedding_model is not None else config.get_embedding_model()
+        self.primary_model = self.chat_models[0] if self.chat_models else config.get_fallback_model()
+
+        self.specialization_description = specialization_description if specialization_description is not None else config.default_specialization
+        self.core_directives = core_directives if core_directives is not None else config.default_core_directives
+
+        _chroma_path = chroma_service_path if chroma_service_path is not None else config.get_chroma_service_path()
+        self.default_memory_collection = dedicated_chroma_collection_name if dedicated_chroma_collection_name else f"{config.agent_memory_collection_prefix}_{self.agent_id}"
+        self.experience_memory_collection_name = config.experience_memory_collection # Get from config
+
         self.current_state: AgentState = AgentState.IDLE
 
-        self.rag_results_count = rag_results_count
-        self.rag_max_context_length = rag_max_context_length
-        self.experience_results_count = experience_results_count
-        self.experience_max_context_length = experience_max_context_length
+        self.rag_results_count = rag_results_count if rag_results_count is not None else config.rag_results_count
+        self.rag_max_context_length = rag_max_context_length if rag_max_context_length is not None else config.rag_max_context_length
+        self.experience_results_count = experience_results_count if experience_results_count is not None else config.experience_results_count
+        self.experience_max_context_length = experience_max_context_length if experience_max_context_length is not None else config.experience_max_context_length
 
         print(f"Agent {self.agent_id} ('{self.persona_name}') initializing...")
         print(f"  Specialization: {self.specialization_description[:70]}...")
-        # print(f"  Core Directives: {self.core_directives[:1]}...")
-        # print(f"  Primary Model: {self.primary_model}")
-        # print(f"  Models: Chat={len(self.chat_models)}, Util={len(self.utility_models)}, Embed='{self.embedding_model_name}'")
-        # print(f"  RAG Settings: Results={self.rag_results_count}, MaxContextLen={self.rag_max_context_length}")
-        # print(f"  Experience Settings: Results={self.experience_results_count}, MaxExpLen={self.experience_max_context_length}")
+        # print(f"  Core Directives: {self.core_directives[:1]}...") # Verbose
+        # print(f"  Primary Model: {self.primary_model}") # Verbose
+        # print(f"  Models: Chat={len(self.chat_models)}, Util={len(self.utility_models)}, Embed='{self.embedding_model_name}'") # Verbose
+        # print(f"  RAG Settings: Results={self.rag_results_count}, MaxContextLen={self.rag_max_context_length}") # Verbose
+        # print(f"  Experience Settings: Results={self.experience_results_count}, MaxExpLen={self.experience_max_context_length}") # Verbose
 
         try:
-            self.chroma_service = ChromaService(path=self.chroma_service_path)
+            self.chroma_service = ChromaService(path=_chroma_path) # Use resolved path
             self.chroma_service.get_or_create_collection(self.default_memory_collection)
-            self.chroma_service.get_or_create_collection(EXPERIENCE_MEMORY_COLLECTION)
-            print(f"  ChromaDB: Connected. Default Mem: '{self.default_memory_collection}', Exp. Mem: '{EXPERIENCE_MEMORY_COLLECTION}'.")
+            self.chroma_service.get_or_create_collection(self.experience_memory_collection_name) # Use name from config
+            print(f"  ChromaDB: Connected. Default Mem: '{self.default_memory_collection}', Exp. Mem: '{self.experience_memory_collection_name}'.")
         except Exception as e:
             print(f"CRITICAL: Agent {self.agent_id} failed ChromaService init: {e}")
-            self.chroma_service = None
+            self.chroma_service = None # type: ignore Report an issue if type checker complains
         print(f"Agent {self.agent_id} ('{self.persona_name}') initialized. State: {self.current_state.value}.")
 
     def _get_model_from_list(self, model_list: List[str], requested_model: Optional[str]=None) -> str:
         if requested_model: return requested_model
         if model_list: return model_list[0]
-        print(f"Warning: Model list empty for {self.persona_name}. Falling back to {FALLBACK_MODEL}"); return FALLBACK_MODEL
+        fallback = config.get_fallback_model()
+        print(f"Warning: Model list empty for {self.persona_name}. Falling back to {fallback}");
+        return fallback
 
     def _llm_call(self, prompt: str, model_category: str="chat", requested_model: Optional[str]=None) -> str:
-        target_model_name = FALLBACK_MODEL
-        if requested_model: target_model_name = requested_model
-        elif model_category == "chat": target_model_name = self._get_model_from_list(self.chat_models)
-        elif model_category == "utility": target_model_name = self._get_model_from_list(self.utility_models)
-        elif model_category != "embedding": target_model_name = model_category
-        else: target_model_name = self._get_model_from_list(self.chat_models)
+        target_model_name = config.get_fallback_model() # Default to fallback
+        if requested_model:
+            target_model_name = requested_model
+        elif model_category == "chat":
+            target_model_name = self._get_model_from_list(self.chat_models)
+        elif model_category == "utility":
+            target_model_name = self._get_model_from_list(self.utility_models)
+        # No 'embedding' category here, as that's handled by generate_embedding
+        elif model_category != "embedding": # If specific model name passed as category
+            target_model_name = model_category
+        else: # Should not happen if logic is correct, but default to primary chat
+            target_model_name = self._get_model_from_list(self.chat_models)
+
         system_message_parts = [f"You are an AI assistant: '{self.persona_name}'.", f"Specialization: {self.specialization_description}"]
-        if self.core_directives: system_message_parts.append("Core Directives:"); system_message_parts.extend(f"{i+1}. {d}" for i,d in enumerate(self.core_directives))
+        if self.core_directives:
+            system_message_parts.append("Core Directives:")
+            system_message_parts.extend(f"{i+1}. {d}" for i,d in enumerate(self.core_directives))
         system_message_content = "\n".join(system_message_parts)
-        # print(f"Agent {self.agent_id} ({self.persona_name}) model '{target_model_name}'. System: '{system_message_content[:100]}...'. User: '{prompt[:100]}...'") # Verbose
-        try:
-            response = self.ollama_client.chat(model=target_model_name, messages=[{'role': 'system', 'content': system_message_content},{'role': 'user', 'content': prompt}])
-            return response['message']['content']
-        except Exception as e:
-            print(f"Error LLM call ({target_model_name}): {e}")
-            error_message = f"LLM call failed: {str(e)}."
-            if hasattr(e, 'response') and e.response is not None:
-                try: ollama_error = e.response.json(); error_detail = ollama_error.get('error', str(e))
-                if "model not found" in error_detail.lower() or "models are not available" in error_detail.lower() or "pull model" in error_detail.lower(): error_message += f" The model '{target_model_name}' may not be pulled or available. Try `ollama pull {target_model_name}`."
-                except ValueError: pass
-            return error_message
+
+        # Use the LLMClient instance
+        return self.llm_client.call_llm(
+            prompt=prompt,
+            system_message=system_message_content,
+            model=target_model_name
+        )
 
     def generate_embedding(self, text_to_embed: str, requested_embedding_model: Optional[str] = None) -> Optional[List[float]]:
         embed_model_to_use = requested_embedding_model if requested_embedding_model else self.embedding_model_name
-        try: response = self.ollama_client.embeddings(model=embed_model_to_use, prompt=text_to_embed); return response.get("embedding")
-        except Exception as e: print(f"Error embedding generation ({embed_model_to_use}): {e}"); return None
+        # Use the LLMClient instance
+        return self.llm_client.generate_embedding(text_to_embed, model=embed_model_to_use)
 
     def process_and_store_text_in_memory(self, text_content: str, source_metadata: Dict[str, Any], collection_name: Optional[str] = None, chunk_strategy: str = "paragraph", chunk_size: int = 500, chunk_overlap: int = 50) -> Tuple[int, int]:
         if not self.chroma_service: return 0,0
@@ -152,7 +165,7 @@ class Agent:
 
     def _augment_prompt_with_experience_context(self, original_prompt: str, query_for_experience: str) -> str:
         if not self.chroma_service: return original_prompt
-        retrieved_experiences = self.retrieve_relevant_info_from_memory(query_text=query_for_experience,collection_name=EXPERIENCE_MEMORY_COLLECTION, n_results=self.experience_results_count)
+        retrieved_experiences = self.retrieve_relevant_info_from_memory(query_text=query_for_experience,collection_name=self.experience_memory_collection_name, n_results=self.experience_results_count)
         if not retrieved_experiences: return original_prompt
         experience_str = "\n\n---\n\n".join(retrieved_experiences)
         if len(experience_str) > self.experience_max_context_length: experience_str = experience_str[:self.experience_max_context_length] + "... (truncated)"
@@ -173,7 +186,7 @@ class Agent:
         if not reflection_embedding: print(f"Agent {self.agent_id}: Failed reflection embedding."); self.current_state = original_state; return reflection_text
         reflection_metadata = {"source_type": "task_reflection", "original_task_id": completed_task.task_id, "original_task_description": completed_task.description[:250], "original_task_status": completed_task.status.value, "original_task_result_snippet": str(completed_task.result)[:250], "reflecting_agent_id": self.agent_id, "reflecting_agent_persona": self.persona_name, "reflection_timestamp": datetime.datetime.utcnow().isoformat(), "objective_id": completed_task.objective_id}
         reflection_id = f"refl_{completed_task.task_id}_{uuid.uuid4().hex[:8]}"
-        success = self.chroma_service.add_documents(collection_name=EXPERIENCE_MEMORY_COLLECTION, documents=[reflection_text], embeddings=[reflection_embedding], metadatas=[reflection_metadata], ids=[reflection_id])
+        success = self.chroma_service.add_documents(collection_name=self.experience_memory_collection_name, documents=[reflection_text], embeddings=[reflection_embedding], metadatas=[reflection_metadata], ids=[reflection_id])
         self.current_state = original_state
         # print(f"Agent {self.agent_id} ({self.persona_name}): State restored to {self.current_state.value} after reflection.") # Slightly verbose
         return reflection_text
@@ -242,11 +255,34 @@ class Agent:
         prompt_with_rag_context = self._augment_prompt_with_rag_context(original_prompt=base_prompt, query_for_rag=objective.description)
         final_prompt = self._augment_prompt_with_experience_context(original_prompt=prompt_with_rag_context, query_for_experience=objective.description)
         response_text = self._llm_call(final_prompt, model_category="chat")
-        new_tasks = [];
-        if "LLM call failed" in response_text or not response_text.strip(): task_desc = f"Critically review and address the objective: {objective.description}"; fallback_task = Task(description=task_desc, objective_id=objective.objective_id, priority=1, created_by_agent_id=self.agent_id); new_tasks.append(fallback_task);_ = task_list_manager and task_list_manager.add_task(fallback_task)
+        new_tasks = []
+        if "LLM call failed" in response_text or not response_text.strip():
+            task_desc = f"Critically review and address the objective: {objective.description}"
+            fallback_task = Task(description=task_desc, objective_id=objective.objective_id, priority=1, created_by_agent_id=self.agent_id)
+            new_tasks.append(fallback_task)
+            if task_list_manager:
+                task_list_manager.add_task(fallback_task)
         else:
-            for i, line_content in enumerate(response_text.split('\n')): line_content = line_content.strip(); task_desc = re.sub(r'^\s*[\d\W]+\s*', '', line_content);_ = not task_desc and (_ := next);_ = task_desc and (task_obj := Task(description=task_desc, objective_id=objective.objective_id, priority=i + 1, created_by_agent_id=self.agent_id)) and new_tasks.append(task_obj) and (_ = task_list_manager and task_list_manager.add_task(task_obj)) # type: ignore
-        if not new_tasks and not ("LLM call failed" in response_text): task_desc = f"Critically review and address the objective: {objective.description}"; fallback_task = Task(description=task_desc, objective_id=objective.objective_id, priority=1, created_by_agent_id=self.agent_id); new_tasks.append(fallback_task);_ = task_list_manager and task_list_manager.add_task(fallback_task)
+            for i, line_content in enumerate(response_text.split('\n')):
+                line_content = line_content.strip()
+                task_desc = re.sub(r'^\s*[\d\W]+\s*', '', line_content)
+                if task_desc: # Ensure task_desc is not empty after stripping
+                    task_obj = Task(
+                        description=task_desc,
+                        objective_id=objective.objective_id,
+                        priority=i + 1,
+                        created_by_agent_id=self.agent_id
+                    )
+                    new_tasks.append(task_obj)
+                    if task_list_manager:
+                        task_list_manager.add_task(task_obj)
+
+        if not new_tasks and not ("LLM call failed" in response_text): # If LLM didn't fail but no tasks were parsed
+            task_desc = f"Critically review and address the objective: {objective.description}"
+            fallback_task = Task(description=task_desc, objective_id=objective.objective_id, priority=1, created_by_agent_id=self.agent_id)
+            new_tasks.append(fallback_task)
+            if task_list_manager:
+                task_list_manager.add_task(fallback_task)
         return new_tasks
 
     def is_objective_complete(self, objective: Objective, task_list_manager: 'TaskListManager') -> bool:
@@ -283,7 +319,25 @@ class Agent:
         final_exp_results = experience_results_count_override if experience_results_count_override is not None else self.experience_results_count
         final_exp_max_len = experience_max_context_length_override if experience_max_context_length_override is not None else self.experience_max_context_length
         # print(f"Agent {self.agent_id} ({self.persona_name}) cloning into Agent {cloned_agent_id} ({final_persona_name}).") # Verbose
-        return Agent(agent_id=cloned_agent_id, ollama_host=self.ollama_client.host, persona_name=final_persona_name, chat_models=final_chat_models, utility_models=final_utility_models, embedding_model=final_embedding_model, chroma_service_path=self.chroma_service_path, specialization_description=final_spec_desc, core_directives=final_directives, dedicated_chroma_collection_name=final_collection_name, rag_results_count=final_rag_results, rag_max_context_length=final_rag_max_len, experience_results_count=final_exp_results, experience_max_context_length=final_exp_max_len)
+        # For cloning, the ollama_host is implicitly carried by the LLMClient instance,
+        # which itself gets host from config_manager. So, no need to pass ollama_host explicitly to Agent constructor.
+        # We are also now passing None for chroma_service_path in clone, so it defaults to config.
+        return Agent(
+            agent_id=cloned_agent_id,
+            # ollama_host is not a direct param anymore
+            persona_name=final_persona_name,
+            chat_models=final_chat_models,
+            utility_models=final_utility_models,
+            embedding_model=final_embedding_model,
+            chroma_service_path=None, # Let clone use default from config or its own logic
+            specialization_description=final_spec_desc,
+            core_directives=final_directives,
+            dedicated_chroma_collection_name=final_collection_name,
+            rag_results_count=final_rag_results,
+            rag_max_context_length=final_rag_max_len,
+            experience_results_count=final_exp_results,
+            experience_max_context_length=final_exp_max_len
+        )
 
     def scrape_website(self, url: str, load_wait_time: int = 5) -> Optional[str]:
         try: text_content = get_text_from_url(url, load_wait_time=load_wait_time); return text_content

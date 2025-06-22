@@ -97,21 +97,29 @@ Once inside the container's bash shell:
 
 ## 3. Interacting with Agent Zero (Inside Container)
 
-All interactions typically occur within the running Docker container. Navigate to the application directory:
+All interactions typically occur within the running Docker container.
+
+### 3.1. Basic CLI Interaction (Recommended for Phase 1)
+Navigate to the application directory and run the CLI script:
 ```bash
 cd /app
+python3 ./run_agent_cli.py
 ```
-From here, you can use Python to interact with Agent Zero components.
+This will start a simple command-line interface where you can directly prompt an Agent Zero instance. Type your queries and press Enter. Use `exit` or `quit` to leave the CLI.
 
-### 3.1. Meta Agent 0: Your Guide to the System
+### 3.2. Advanced Interaction (Python Examples)
+
+For more direct interaction with components or to run specific loops:
+
+#### 3.2.1. Meta Agent 0: Your Guide to the System
 Meta Agent 0 (`agent_zero.meta_agent_0.core.MetaAgent0`) helps you understand this `0README.txt`.
 ```python
-# Example Python interaction:
+# Example Python interaction (run from /app directory):
 from agent_zero.meta_agent_0.core import MetaAgent0
-from agent_zero.self_play.models import Status # Added for callback example
+# from agent_zero.self_play.models import Status # Not needed for this basic MetaAgent0 example
 
 # Ensure Ollama is running (ollama serve &)
-meta_agent = MetaAgent0()
+meta_agent = MetaAgent0() # Uses defaults from config_manager
 
 # Ask about a section (it will use its default Ollama model)
 explanation = meta_agent.explain_readme_section("How does Agent Zero manage GPU and CPU resources?")
@@ -122,7 +130,7 @@ explanation_rag = meta_agent.explain_readme_section("What is the RAG flow in Age
 print(explanation_rag)
 ```
 
-### 3.2. Self-Play Loop: Autonomous Task Execution
+#### 3.2.2. Self-Play Loop: Autonomous Task Execution
 The self-play mechanism (`agent_zero.self_play.loop.self_play_loop`) allows an agent (typically an "Orchestrator") to autonomously pursue an objective.
 
 ```python
@@ -241,14 +249,25 @@ Agent Zero is designed around a modular architecture with the following principl
 
 1.  **`Agent` (`agent_zero.self_play.agent.Agent`)**:
     *   The primary intelligent entity. Responsible for decision-making, task execution, learning, and interaction with other components.
-    *   **Key Capabilities:** LLM interaction (via `_llm_call`), web scraping (via `scrape_website`), RAG (information retrieval and context augmentation), experience-based learning (reflection and simulated challenges), task decomposition, state management (`AgentState`).
-    *   Customizable via configurations (`agent_configs.py`) for persona, specialization, directives, model preferences, and dedicated memory.
+    *   **Key Capabilities:** LLM interaction (delegated to `LLMClient`), web scraping (via `scrape_website`), RAG (information retrieval and context augmentation), experience-based learning (reflection and simulated challenges), task decomposition, state management (`AgentState`).
+    *   Uses `ConfigManager` for default configurations (Ollama host, models, etc.).
+    *   Customizable via direct instantiation parameters or configurations loaded from `agent_configs.py` (which also leverage `ConfigManager` defaults).
 
-2.  **Ollama (External Service)**:
-    *   The local LLM provider. Agent Zero communicates with the Ollama API (typically running at `http://localhost:11434`) to execute LLM inference tasks using various open-source models (e.g., Mistral, Llama2, TinyDolphin, Nomic Embed).
+2.  **`LLMClient` (`agent_zero.llm_client.LLMClient`)**:
+    *   Manages all direct communication with the Ollama API.
+    *   Handles LLM calls for text generation and embedding creation.
+    *   Configured via `ConfigManager` for the Ollama host.
+
+3.  **`ConfigManager` (`agent_zero.config_manager.ConfigManager`)**:
+    *   Centralizes configuration management for Agent Zero.
+    *   Provides default settings for Ollama host, model lists, ChromaDB paths, agent personas, RAG parameters, etc.
+    *   Allows overrides via environment variables.
+
+4.  **Ollama (External Service)**:
+    *   The local LLM provider. `LLMClient` communicates with the Ollama API.
     *   Handles GPU acceleration and model management.
 
-3.  **ChromaDB Service (`agent_zero.memory.chroma_service.ChromaService`)**:
+5.  **ChromaDB Service (`agent_zero.memory.chroma_service.ChromaService`)**:
     *   A wrapper around the `chromadb` client library, providing an interface for managing vector collections and performing CRUD operations on embeddings and associated documents/metadata.
     *   Used for:
         *   Storing processed text chunks and their embeddings (e.g., from web scrapes) in agent-specific or general collections.
@@ -263,7 +282,7 @@ Agent Zero is designed around a modular architecture with the following principl
 5.  **Text Processor (`agent_zero.utils.text_processing`)**:
     *   Provides functions for cleaning raw text and splitting it into manageable chunks suitable for embedding and RAG. Used by the `Agent` after scraping or when processing large texts for memory storage.
 
-6.  **Self-Play Loop (`agent_zero.self_play.loop.self_play_loop`)**:
+7.  **Self-Play Loop (`agent_zero.self_play.loop.self_play_loop`)**:
     *   The main orchestration logic for autonomous agent operation.
     *   Takes an initial objective and an `Orchestrator` agent.
     *   Manages the cycle of:
@@ -280,30 +299,30 @@ Agent Zero is designed around a modular architecture with the following principl
 
 8.  **Agent Configurations (`agent_zero.agent_configs`)**:
     *   A centralized Python module defining various agent archetypes (e.g., Orchestrator, WebResearcher, Analyst, Critic) as configuration dictionaries.
-    *   These configs specify persona, specialization, directives, model preferences (chat, utility, embedding), RAG/experience parameters, and dedicated ChromaDB collections, allowing for the instantiation of diverse, specialized agents.
+    *   These configs specify persona, specialization, directives, model preferences (chat, utility, embedding), RAG/experience parameters, and dedicated ChromaDB collections, allowing for the instantiation of diverse, specialized agents. These configurations will also benefit from `ConfigManager` for their base settings.
 
-9.  **Meta Agent 0 (`agent_zero.meta_agent_0.core.MetaAgent0`)**:
-    *   A specialized agent designed to help users understand the Agent Zero system by parsing and explaining the `0README.txt` file using Ollama.
+10. **Meta Agent 0 (`agent_zero.meta_agent_0.core.MetaAgent0`)**:
+    *   A specialized agent designed to help users understand the Agent Zero system by parsing and explaining this `0README.txt` file.
+    *   Uses `LLMClient` for Ollama communication and `ConfigManager` for its default model and Ollama host.
 
 ### 5.3. Key Interaction Flows
 
 1.  **Retrieval Augmented Generation (RAG) Flow:**
-    *   **Trigger:** An `Agent` needs to answer a query or perform a task requiring external knowledge (e.g., in `execute_task`, `decompose_objective_into_tasks`).
-    *   **Query Embedding:** The `Agent` generates an embedding for the query/task description using `Agent.generate_embedding()`.
-    *   **ChromaDB Query:** The `Agent` calls `ChromaService.query_collection()` with the query embedding to search its `default_memory_collection` (its specialized knowledge) for relevant text chunks.
-    *   **Context Augmentation:** Retrieved chunks are formatted and prepended to the original prompt by `Agent._augment_prompt_with_rag_context()`.
-    *   **LLM Call:** The augmented prompt is sent to Ollama via `Agent._llm_call()` for a more informed response.
+    *   **Trigger:** An `Agent` needs to answer a query or perform a task requiring external knowledge.
+    *   **Query Embedding:** The `Agent` calls `Agent.generate_embedding()` (which internally uses `LLMClient.generate_embedding()`).
+    *   **ChromaDB Query:** The `Agent` calls `ChromaService.query_collection()` to search its memory.
+    *   **Context Augmentation:** Retrieved chunks are prepended to the original prompt by `Agent._augment_prompt_with_rag_context()`.
+    *   **LLM Call:** The augmented prompt is sent to Ollama via `Agent._llm_call()` (which internally uses `LLMClient.call_llm()`).
 
 2.  **Experience-Augmented Decision Making:**
-    *   Similar to RAG, but queries the `EXPERIENCE_MEMORY_COLLECTION` using `Agent._augment_prompt_with_experience_context()`.
-    *   Retrieved past reflections/learnings are added to the prompt (often layered with general RAG context).
-    *   Used in methods like `execute_task`, `decompose_objective_into_tasks`, and `generate_next_steps` to leverage past experiences.
+    *   Similar to RAG, but queries the experience memory collection.
+    *   The flow also uses `LLMClient` via `Agent` methods.
 
 3.  **Web Content Ingestion & Storage Flow:**
     *   **Trigger:** An `Agent` executes a "scrape <URL>" task.
-    *   **Scraping:** `Agent.scrape_website()` calls `web_scraper.get_text_from_url()` to fetch and extract text.
-    *   **Processing:** `Agent.process_and_store_text_in_memory()` uses `text_processing.split_text_into_chunks()` on the scraped content.
-    *   **Embedding:** For each chunk, `Agent.generate_embedding()` is called.
+    *   **Scraping:** `Agent.scrape_website()` calls `web_scraper.get_text_from_url()`.
+    *   **Processing:** `Agent.process_and_store_text_in_memory()` uses `text_processing.split_text_into_chunks()`.
+    *   **Embedding:** For each chunk, `Agent.generate_embedding()` (via `LLMClient`) is called.
     *   **Storage:** Chunks, their embeddings, and metadata (URL, task ID, timestamp) are stored in the `Agent`'s `default_memory_collection` via `ChromaService.add_documents()`.
     *   **Result:** The task result includes a summary of the scraped content and a report of the storage process.
 
